@@ -1,6 +1,6 @@
 ---
 name: yanbot-mcp-setup
-description: "Automates the configuration of the Yanbot (研bot) MCP server across multiple AI agent platforms including WorkBuddy, Claude Desktop, Cursor, Windsurf, and Cline. It should be used when the user wants to set up, re-configure, or verify the Yanbot MCP connection. Writes the correct server entry into each platform's config file and guides the user through activation and verification."
+description: "Install and configure 研bot (Yanbot) MCP — one command to get full access to Chinese graduate admissions data (schools, score lines, adjustments, feeds) across 8 platforms. Auto-detects platform, writes config, verifies connectivity, and shows usage examples. Works on WorkBuddy, Claude Desktop, Cursor, Windsurf, Cline, VS Code Copilot, Trae IDE, and 通义灵码."
 agent_created: true
 ---
 
@@ -19,6 +19,20 @@ Yanbot MCP provides `mcp__yanbot__*` tools for querying Chinese graduate admissi
 
 ---
 
+## Auto-Setup on Install (one command, zero config)
+
+When this skill is loaded — either on first install or when the user says **"安装 研bot"** / **"install yanbot"** / **"配置研bot"** — **immediately run the full setup flow below** without waiting for a separate "配置" command:
+
+1. **Detect current platform** from the running environment → Step 0
+2. **Write MCP config** for that platform → Step 1
+3. **Verify connectivity** → Step 2
+4. **Guide activation** if needed → Step 2.5
+5. **Show usage examples** and confirm readiness → Step 3
+
+**Do NOT ask the user to say "配置研bot MCP" separately.** Installing and configuring are one atomic action. If the MCP is already configured, skip to Step 3 and show the existing setup is good.
+
+---
+
 ## Step 0 — Detect Platform and Check Existing Config
 
 First, ask the user which platform(s) to configure. Default to the current platform.
@@ -32,6 +46,12 @@ First, ask the user which platform(s) to configure. Default to the current platf
 | **Cursor** | `~/.cursor/mcp.json` | `~/.cursor/mcp.json` |
 | **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | `~/.codeium/windsurf/mcp_config.json` |
 | **Cline (VS Code)** | VS Code settings: `settings.json` → `cline.mcpServers` | Same |
+| **VS Code Copilot** | `.vscode/mcp.json` (workspace) or user `mcp.json` | Same |
+| **Trae IDE** | IDE Settings → MCP → 手动添加 JSON | Same |
+| **通义灵码** | IDE Settings → MCP → 手动添加 SSE | Same |
+
+> **注意**: VS Code Copilot 使用 `"servers"` 键（非 `"mcpServers"`），详见 Step 1 平台说明。
+> **注意**: Trae IDE 和通义灵码的 MCP 配置通过 IDE 界面操作，无直接可编辑的配置文件路径。
 
 Read the relevant config file(s). If `yanbot` entry already exists with correct `url` and `disabled: false` (or no `disabled` key), skip to **Step 3 — Already Configured**.
 
@@ -107,6 +127,46 @@ The Yanbot MCP server entry is the same across all platforms:
 }
 ```
 
+**VS Code Copilot** — uses `"servers"` key (NOT `"mcpServers"`!) in `.vscode/mcp.json` or user-level `mcp.json`. For HTTP/SSE type, add `"type": "http"`:
+```json
+{
+  "servers": {
+    "yanbot": {
+      "type": "http",
+      "url": "https://api.yanbot.tech/mcp"
+    }
+  }
+}
+```
+
+**Trae IDE** — MCP 配置通过 IDE 界面操作，不支持直接编辑文件。指导用户在 Settings → MCP → 手动添加中粘贴 JSON：
+```json
+{
+  "mcpServers": {
+    "yanbot": {
+      "url": "https://api.yanbot.tech/mcp"
+    }
+  }
+}
+```
+
+**通义灵码** — MCP 配置通过 IDE 界面操作（暂不支持白屏化添加，仅支持配置文件添加）。指导用户在 设置 → MCP 服务 → 手动添加 SSE 中填写：
+- 名称: `yanbot`
+- 类型: `SSE`
+- 服务地址: `https://api.yanbot.tech/mcp`
+
+或直接在 JSON 配置文件（个人设置）中添加：
+```json
+{
+  "mcpServers": {
+    "yanbot": {
+      "type": "sse",
+      "url": "https://api.yanbot.tech/mcp"
+    }
+  }
+}
+```
+
 After writing, confirm to the user which platform(s) have been configured.
 
 ---
@@ -155,6 +215,23 @@ MCP servers do NOT activate automatically on most platforms. Guide the user per 
 1. Open Cline panel in VS Code
 2. Click the MCP icon to see connected servers
 3. yanbot should appear in the list
+
+### VS Code Copilot
+1. Open VS Code, ensure GitHub Copilot extension is installed and active
+2. If using workspace-level `.vscode/mcp.json`, the server auto-activates on next Copilot Chat session
+3. If using user-level `mcp.json`, open Command Palette (`Ctrl+Shift+P`) → **MCP: Open User Configuration**
+4. Verify yanbot is listed in the MCP servers panel under Copilot Chat
+
+### Trae IDE
+1. Open Trae IDE Settings → MCP
+2. Verify **yanbot** appears in the MCP server list
+3. If using Agent 模式, all configured MCP servers auto-attach — confirm yanbot tools are available in Agent conversation
+
+### 通义灵码
+1. 打开 IDE 右上角头像 → 个人设置 → MCP 服务
+2. 确认 **yanbot** 出现在 MCP 服务列表中，状态为已连接
+3. 切换到 **智能体 (Agent) 模式**（需配合 qwen3 模型）
+4. 在对话中输入考研相关查询，Agent 会自动调用 yanbot MCP 工具
 
 ---
 
@@ -221,3 +298,8 @@ Present this as a formatted table in the response:
 | `disabled: true` in config | Set `disabled: false` and re-trust in UI |
 | Claude Desktop shows no MCP | Ensure config JSON is valid; restart app |
 | Cline shows disconnected | Check VS Code settings.json format |
+| VS Code Copilot: tools not showing | Ensure MCP config uses `"servers"` key (not `"mcpServers"`); restart VS Code |
+| VS Code Copilot: server type mismatch | For HTTP/SSE servers, add `"type": "http"` in server config |
+| Trae IDE: yanbot not in MCP list | Re-open Settings → MCP → 手动添加 and paste JSON; ensure no syntax errors |
+| 通义灵码: MCP 服务不可用 | 确认插件版本 ≥ v2.5.0；确认在 Agent 模式下使用 qwen3 模型 |
+| 通义灵码: 连接数量超限 | 通义灵码最多同时连接 10 个 MCP 服务，检查是否超限 |
