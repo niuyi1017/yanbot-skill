@@ -124,7 +124,7 @@ def check_connectivity():
 
         req = urllib.request.Request(
             YANBOT_URL,
-            headers={"User-Agent": "yanbot-mcp-setup-check/1.0"},
+            headers={"User-Agent": "yanbot-skill-check/1.0"},
             method="GET"
         )
         try:
