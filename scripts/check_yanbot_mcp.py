@@ -3,7 +3,8 @@
 """
 check_yanbot_mcp.py
 Verify that the Yanbot MCP server is correctly configured and reachable across platforms.
-Supports: WorkBuddy, Claude Desktop, Cursor, Windsurf, Cline (VS Code).
+Supports: WorkBuddy, Claude Desktop, Cursor, Windsurf, Cline (VS Code),
+          VS Code Copilot, Trae IDE.
 """
 
 import json
@@ -28,11 +29,16 @@ def get_platform_configs():
 
     if sys.platform == "win32":
         appdata = os.environ.get("APPDATA", str(HOME / "AppData" / "Roaming"))
+        localappdata = os.environ.get("LOCALAPPDATA", str(HOME / "AppData" / "Local"))
         configs = [
             ("WorkBuddy", HOME / ".workbuddy" / "mcp.json", ["mcpServers"]),
             ("Claude Desktop", Path(appdata) / "Claude" / "claude_desktop_config.json", ["mcpServers"]),
             ("Cursor", HOME / ".cursor" / "mcp.json", ["mcpServers"]),
             ("Windsurf", HOME / ".codeium" / "windsurf" / "mcp_config.json", ["mcpServers"]),
+            # VS Code Copilot — user-level mcp.json (VS Code stores per-profile)
+            ("VS Code Copilot", Path(appdata) / "Code" / "User" / "globalStorage" / "github.copilot-chat" / "mcp.json", ["servers"]),
+            # Trae IDE — config stored in AppData
+            ("Trae IDE", Path(appdata) / "Trae" / "User" / "globalStorage" / "mcp.json", ["mcpServers"]),
         ]
         # VS Code settings - check common locations
         vscode_settings = HOME / "AppData" / "Roaming" / "Code" / "User" / "settings.json"
@@ -45,6 +51,10 @@ def get_platform_configs():
             ("Claude Desktop", HOME / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json", ["mcpServers"]),
             ("Cursor", HOME / ".cursor" / "mcp.json", ["mcpServers"]),
             ("Windsurf", HOME / ".codeium" / "windsurf" / "mcp_config.json", ["mcpServers"]),
+            # VS Code Copilot
+            ("VS Code Copilot", HOME / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "github.copilot-chat" / "mcp.json", ["servers"]),
+            # Trae IDE
+            ("Trae IDE", HOME / "Library" / "Application Support" / "Trae" / "User" / "globalStorage" / "mcp.json", ["mcpServers"]),
         ]
         vscode_settings = HOME / "Library" / "Application Support" / "Code" / "User" / "settings.json"
         if vscode_settings.exists():
