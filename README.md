@@ -6,7 +6,7 @@
 
 ## 安装研bot后，你可以做什么？
 
-研bot 把全国考研数据库接入了你的 AI 编程助手。安装后，直接中文对话就能查：
+研bot 把全国考研数据库接入了你的 AI 助手。安装后，直接中文对话就能查：
 
 ### 🏫 查院校
 
@@ -59,6 +59,7 @@
 | **Windsurf** | ✅ 自动写入 |
 | **Cline (VS Code)** | ✅ 自动写入 |
 | **VS Code Copilot** | ✅ 自动写入 |
+| **Agent World（扣子）** | ✅ 在线安装 |
 | **Trae IDE** | ✅ 手动添加 |
 | **通义灵码** | ✅ 手动添加 |
 
@@ -66,36 +67,14 @@
 
 ## 如何安装？
 
-### WorkBuddy 用户（推荐）
 
-在对话中说：
-
-> "安装 研bot"
-
-AI 会自动完成安装和 MCP 接入，一次对话搞定。安装完就能直接查考研数据。
-
-### 其他平台用户
 
 直接把下面这段话发给有 shell 权限的 AI Agent：
 
-> 帮我安装研bot Skill。请把 https://github.com/WiLL/yanbot-skill 克隆到 skills/yanbot-mcp-setup/，安装完成后检查 SKILL.md、scripts/ 是否存在，然后自动配置研bot MCP 连接。
+> 帮我安装研bot Skill。请把 https://github.com/niuyi1017/yanbot-skill 克隆到 skills/yanbot-mcp-setup/，安装完成后检查 SKILL.md、scripts/ 是否存在，然后自动配置研bot MCP 连接。
 
 > ⚠️ **VS Code Copilot 用户**：注意使用 `"servers"` 键（非 `"mcpServers"`），并加 `"type": "http"`。
 
----
-
-## 验证安装
-
-```bash
-python scripts/check_yanbot_mcp.py
-```
-
-```
-  [WorkBuddy] Config OK
-  [VS Code Copilot] Config OK
-  [Endpoint]   Reachable
-  → 所有已配置平台均可正常使用！
-```
 
 ---
 
