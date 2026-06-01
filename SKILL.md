@@ -1,10 +1,41 @@
 ---
-name: yanbot-mcp-setup
-description: "Install and configure 研bot (Yanbot) MCP — one command to get full access to Chinese graduate admissions data (schools, score lines, adjustments, feeds) across 8 platforms. Auto-detects platform, writes config, verifies connectivity, and shows usage examples. Works on WorkBuddy, Claude Desktop, Cursor, Windsurf, Cline, VS Code Copilot, Trae IDE, and 通义灵码."
+name: yanbot-skill
+description: "研bot (Yanbot) 综合技能包 —— 围绕中国考研数据（院校、分数线、调剂、资讯）的一站式能力集合。当前包含「功能一：MCP 接入与配置」，可一条指令在 8 个平台完成 MCP 安装、写入配置、连通性校验并给出使用示例（WorkBuddy / Claude Desktop / Cursor / Windsurf / Cline / VS Code Copilot / Trae IDE / 通义灵码）。后续功能（数据导出、定向监控、报告生成等）将以新的章节追加到本文件，调用方式不变。"
 agent_created: true
 ---
 
-# Yanbot MCP Setup Skill
+# Yanbot Skill
+
+研bot 综合技能包。本 Skill 是一个**功能容器**，按章节组织多个可独立调用的子功能。当前已实装的是**功能一：MCP 接入与配置**；后续功能会在下方「Feature Roadmap」中陆续落地，调用入口（本 Skill 名称 `yanbot-skill`）保持不变。
+
+## 触发词路由
+
+根据用户说的话，路由到对应的功能章节：
+
+| 用户说什么 | 路由到 |
+|-----------|-------|
+| "安装研bot" / "install yanbot" / "配置研bot" / "接入研bot MCP" | **功能一：MCP 接入与配置** |
+| "研bot 能做什么" / "研bot 有哪些功能" | 列出本文件下所有 `## Feature` 章节标题 |
+| 其他研bot 相关请求 | 先确认目标功能，再路由；若尚未实装则告知「该功能规划中」并指引使用功能一 |
+
+---
+
+## Feature Roadmap
+
+| # | 功能 | 状态 | 章节锚点 |
+|---|------|------|---------|
+| 1 | MCP 接入与配置（8 平台一键设置） | ✅ 已实装 | [Feature 1](#feature-1--mcp-接入与配置) |
+| 2 | 数据导出（院校 / 分数线 / 调剂离线包） | ⏳ 规划中 | — |
+| 3 | 定向监控（指定院校 / 专业的资讯订阅） | ⏳ 规划中 | — |
+| 4 | 报告生成（择校 / 调剂决策报告） | ⏳ 规划中 | — |
+
+> 新增功能时，在本表登记一行，并在下方追加一个 `## Feature N — <名称>` 章节，章节内沿用 `Step 0 / Step 1 / ...` 的结构。**不要**改动已有功能章节的编号。
+
+---
+
+# Feature 1 — MCP 接入与配置
+
+> 本章节即原 `yanbot-mcp-setup` Skill 的完整内容，迁入后作为本技能包的第一个功能。
 
 ## Overview
 
@@ -21,7 +52,7 @@ Yanbot MCP provides `mcp__yanbot__*` tools for querying Chinese graduate admissi
 
 ## Auto-Setup on Install (one command, zero config)
 
-When this skill is loaded — either on first install or when the user says **"安装 研bot"** / **"install yanbot"** / **"配置研bot"** — **immediately run the full setup flow below** without waiting for a separate "配置" command:
+当本 Skill 被加载，或用户说 **"安装 研bot"** / **"install yanbot"** / **"配置研bot"** / **"接入研bot MCP"** 时，**立即按下方完整流程执行 Feature 1**，无需等待用户再说一遍"配置"：
 
 1. **Detect current platform** from the running environment → Step 0
 2. **Write MCP config** for that platform → Step 1
@@ -173,11 +204,30 @@ After writing, confirm to the user which platform(s) have been configured.
 
 ## Step 2 — Run Connectivity Check
 
-After writing config, verify the endpoint is reachable:
+After writing config, verify the endpoint is reachable by running the script bundled with this Skill.
+
+**不要硬编码绝对路径**。按下面优先级解析：
+
+1. **脚本路径**：定位本 `SKILL.md` 所在目录下的 `scripts/check_yanbot_mcp.py`（即 `<SKILL_DIR>/scripts/check_yanbot_mcp.py`）。常见 `SKILL_DIR`：
+   - WorkBuddy：`~/.workbuddy/skills/yanbot-skill/`
+   - 其他平台：克隆/安装时的目标目录（用户自定义）
+2. **Python 解释器**：优先用 `PATH` 中可用的解释器（Windows 用 `py -3` 或 `python`，macOS/Linux 用 `python3`）。仅当用户明确指定时才使用自定义解释器路径（例如 WorkBuddy 内置 `~/.workbuddy/binaries/python/.../python.exe`）。
+
+参考调用示例（按平台自行替换）：
 
 ```bash
-"C:\Users\10961\.workbuddy\binaries\python\versions\3.13.12\python.exe" "C:\Users\10961\.workbuddy\skills\yanbot-mcp-setup\scripts\check_yanbot_mcp.py"
+# macOS / Linux
+python3 "$SKILL_DIR/scripts/check_yanbot_mcp.py"
+
+# Windows (PowerShell)
+py -3 "$Env:SKILL_DIR\scripts\check_yanbot_mcp.py"
+
+# WorkBuddy（如需用内置 Python）
+"~/.workbuddy/binaries/python/versions/3.13.12/python.exe" \
+  "~/.workbuddy/skills/yanbot-skill/scripts/check_yanbot_mcp.py"
 ```
+
+> 脚本本身不依赖任何第三方库，标准库即可运行（Python ≥ 3.8）。
 
 The script checks:
 1. Whether the WorkBuddy `yanbot` entry exists in `~/.workbuddy/mcp.json`
@@ -303,3 +353,21 @@ Present this as a formatted table in the response:
 | Trae IDE: yanbot not in MCP list | Re-open Settings → MCP → 手动添加 and paste JSON; ensure no syntax errors |
 | 通义灵码: MCP 服务不可用 | 确认插件版本 ≥ v2.5.0；确认在 Agent 模式下使用 qwen3 模型 |
 | 通义灵码: 连接数量超限 | 通义灵码最多同时连接 10 个 MCP 服务，检查是否超限 |
+
+---
+
+# Feature 2 — 数据导出（规划中）
+
+> 占位章节。计划支持把院校、分数线、调剂记录按筛选条件导出为 CSV / JSON 离线包。
+> 触发词预留："导出研bot数据" / "yanbot export"。
+> 实装前若用户触发，请回复："该功能尚在规划中，目前可先用 Feature 1 接入 MCP 后通过对话查询。"
+
+# Feature 3 — 定向监控（规划中）
+
+> 占位章节。计划支持订阅指定院校 / 专业的最新资讯，定时推送变更。
+> 触发词预留："监控研bot动态" / "订阅院校资讯"。
+
+# Feature 4 — 报告生成（规划中）
+
+> 占位章节。计划生成择校 / 调剂决策报告（含分数对比、调剂概率估算、建议清单）。
+> 触发词预留："生成择校报告" / "生成调剂报告"。
