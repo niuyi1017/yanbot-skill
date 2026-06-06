@@ -15,6 +15,7 @@ agent_created: true
 | 用户说什么 | 路由到 |
 |-----------|-------|
 | "安装研bot" / "install yanbot" / "配置研bot" / "接入研bot MCP" | **功能一：MCP 接入与配置** |
+| "打开研bot网页" / "open dashboard" / "launch web UI" / "打开网页界面" / "启动研bot界面" | **功能五：Web Dashboard** |
 | "研bot 能做什么" / "研bot 有哪些功能" | 列出本文件下所有 `## Feature` 章节标题 |
 | 其他研bot 相关请求 | 先确认目标功能，再路由；若尚未实装则告知「该功能规划中」并指引使用功能一 |
 
@@ -28,6 +29,7 @@ agent_created: true
 | 2 | 数据导出（院校 / 分数线 / 调剂离线包） | ⏳ 规划中 | — |
 | 3 | 定向监控（指定院校 / 专业的资讯订阅） | ⏳ 规划中 | — |
 | 4 | 报告生成（择校 / 调剂决策报告） | ⏳ 规划中 | — |
+| 5 | Web Dashboard（网页可视化界面） | ✅ 已实装 | [Feature 5](#feature-5--web-dashboard) |
 
 > 新增功能时，在本表登记一行，并在下方追加一个 `## Feature N — <名称>` 章节，章节内沿用 `Step 0 / Step 1 / ...` 的结构。**不要**改动已有功能章节的编号。
 
@@ -371,3 +373,107 @@ Present this as a formatted table in the response:
 
 > 占位章节。计划生成择校 / 调剂决策报告（含分数对比、调剂概率估算、建议清单）。
 > 触发词预留："生成择校报告" / "生成调剂报告"。
+
+---
+
+# Feature 5 — Web Dashboard
+
+## Overview
+
+本地网页界面，让用户无需借助 AI 助手，直接在浏览器中查询院校、分数线、调剂数据。
+
+Node.js 服务器（`server.js`）启动后作为 MCP 客户端，持有一个到 `https://api.yanbot.tech/mcp` 的持久会话，并向浏览器暴露简单的 `/api/call` HTTP 接口。`public/index.html` 只需发普通 `fetch` 请求，无需关心 MCP 协议细节。
+
+## Auto-Trigger
+
+当用户说 **"打开研bot网页" / "open dashboard" / "launch web UI" / "打开网页界面" / "启动研bot界面"** 时，**立即执行 Step 0 → Step 2**，无需二次确认。
+
+---
+
+## Step 0 — 检查 Node.js
+
+检查 Node.js 是否已安装（要求 ≥ 16）：
+
+```powershell
+# Windows
+node --version
+```
+
+```bash
+# macOS / Linux
+node --version
+```
+
+若未安装，引导用户到 https://nodejs.org 下载安装，完成后再执行 Step 1。
+
+---
+
+## Step 1 — 启动服务器
+
+在 `yanbot-skill` 目录（即本 SKILL.md 所在目录，`SKILL_DIR`）下后台启动服务器：
+
+- WorkBuddy：`SKILL_DIR` = `~/.workbuddy/skills/yanbot-skill/`
+- 其他平台：克隆/安装时的目标目录
+
+```powershell
+# Windows PowerShell
+cd "$Env:SKILL_DIR"
+Start-Process node -ArgumentList "server.js" -PassThru
+Start-Sleep 2
+Invoke-WebRequest -Uri http://localhost:3000 -Method Head -UseBasicParsing
+```
+
+```bash
+# macOS / Linux
+cd "$SKILL_DIR"
+node server.js &
+sleep 2 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+```
+
+服务器默认绑定 `127.0.0.1:3000`。若端口被占用，用环境变量覆盖：
+
+```powershell
+# Windows
+$env:PORT=3001; node server.js
+```
+
+```bash
+# macOS / Linux
+PORT=3001 node server.js &
+```
+
+---
+
+## Step 2 — 打开浏览器
+
+```powershell
+# Windows
+Start-Process "http://localhost:3000"
+```
+
+```bash
+# macOS
+open http://localhost:3000
+```
+
+```bash
+# Linux
+xdg-open http://localhost:3000
+```
+
+确认提示用户：
+
+> ✅ 研bot Dashboard 已启动，地址：http://localhost:3000
+> 页面加载后会自动连接 MCP，连接成功后状态显示「已连接」，即可开始查询。
+
+---
+
+## Common Issues
+
+| 症状 | 解决 |
+|------|------|
+| 端口 3000 被占用 | `PORT=3001 node server.js` |
+| 页面一直显示「连接中…」 | 检查网络是否能访问 api.yanbot.tech；确认 Feature 1 MCP 连通 |
+| 查询返回"MCP session not ready" | 等待 2s 后重试，服务器正在重连 MCP |
+| node 命令未找到 | 安装 Node.js ≥ 16：https://nodejs.org |
+| 浏览器报 "Failed to fetch" | 确认 server.js 仍在运行（未意外退出）
