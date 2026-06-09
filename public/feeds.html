@@ -1,235 +1,241 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>资讯动态 · 研bot</title>
-<link rel="stylesheet" href="common.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>资讯动态 · 研bot</title>
+  <link rel="stylesheet" href="common.css">
 </head>
+
 <body>
-<header class="page-header">
-  <a href="/" class="header-brand">研<em>bot</em></a>
-  <nav class="header-nav">
-    <a href="/"          class="nav-link">首页</a>
-    <a href="feeds.html" class="nav-link active">资讯动态</a>
-    <a href="data.html"  class="nav-link">数据查询</a>
-  </nav>
-  <div class="header-right">
-    <span id="badge" class="badge connecting">连接中…</span>
-  </div>
-</header>
-
-<div class="container">
-  <div class="sidebar-layout">
-
-    <!-- ── Sidebar ── -->
-    <div class="sidebar">
-
-      <!-- School search -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">按院校筛选</div>
-        <div class="card card-body" style="padding:.875rem">
-          <div class="autocomplete-wrap">
-            <input type="text" id="school-input" placeholder="输入学校名搜索…" style="width:100%">
-            <div id="school-dropdown" class="autocomplete-dropdown" style="display:none"></div>
-          </div>
-          <div id="selected-tasks" class="selected-pills"></div>
-        </div>
-      </div>
-
-      <!-- Date range -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">发布时间</div>
-        <div class="card card-body" style="padding:.875rem;display:flex;flex-direction:column;gap:.5rem">
-          <div class="form-group">
-            <label class="form-label">从</label>
-            <input type="date" id="date-from">
-          </div>
-          <div class="form-group">
-            <label class="form-label">到</label>
-            <input type="date" id="date-to">
-          </div>
-        </div>
-      </div>
-
-      <!-- Tag filter -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title" style="display:flex;justify-content:space-between">
-          <span>标签筛选</span>
-          <a href="#" id="tag-clear" style="font-size:.7rem;color:var(--c-accent);text-decoration:none">清除</a>
-        </div>
-        <div class="card card-body" style="padding:.875rem">
-          <div id="tag-list"></div>
-        </div>
-      </div>
-
-      <button id="search-btn" class="btn btn-primary" style="width:100%" disabled>搜索</button>
-      <button id="reset-btn"  class="btn btn-ghost"   style="width:100%;margin-top:.4rem">重置</button>
+  <header class="page-header">
+    <a href="/" class="header-brand">研<em>bot</em></a>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">首页</a>
+      <a href="feeds.html" class="nav-link active">资讯动态</a>
+      <a href="data.html" class="nav-link">数据查询</a>
+    </nav>
+    <div class="header-right">
+      <span id="badge" class="badge connecting">连接中…</span>
     </div>
+  </header>
 
-    <!-- ── Main ── -->
-    <div class="main-content">
-      <div class="result-header">
-        <span class="result-count" id="result-count"></span>
+  <div class="container">
+    <div class="sidebar-layout">
+
+      <!-- ── Sidebar ── -->
+      <div class="sidebar">
+
+        <!-- School search -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">按院校筛选</div>
+          <div class="card card-body" style="padding:1rem">
+            <div class="autocomplete-wrap">
+              <input type="text" id="school-input" placeholder="输入学校名搜索…" style="width:100%">
+              <div id="school-dropdown" class="autocomplete-dropdown" style="display:none"></div>
+            </div>
+            <div id="selected-tasks" class="selected-pills"></div>
+          </div>
+        </div>
+
+        <!-- Date range -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">发布时间</div>
+          <div class="card card-body" style="padding:1rem;display:flex;flex-direction:column;gap:.625rem">
+            <div class="form-group">
+              <label class="form-label">从</label>
+              <input type="date" id="date-from">
+            </div>
+            <div class="form-group">
+              <label class="form-label">到</label>
+              <input type="date" id="date-to">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tag filter -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title" style="display:flex;justify-content:space-between">
+            <span>标签筛选</span>
+            <a href="#" id="tag-clear"
+              style="font-size:.7rem;color:var(--c-accent);text-decoration:none;font-weight:600">清除</a>
+          </div>
+          <div class="card card-body" style="padding:1rem">
+            <div id="tag-list"></div>
+          </div>
+        </div>
+
+        <button id="search-btn" class="btn btn-primary" style="width:100%" disabled>搜索</button>
+        <button id="reset-btn" class="btn btn-ghost" style="width:100%;margin-top:.5rem">重置</button>
       </div>
-      <div id="feed-results">
-        <div class="state-loading"><div class="spinner"></div>连接中，请稍候…</div>
+
+      <!-- ── Main ── -->
+      <div class="main-content">
+        <div class="result-header">
+          <span class="result-count" id="result-count"></span>
+        </div>
+        <div id="feed-results">
+          <div class="state-loading">
+            <div class="spinner"></div>连接中，请稍候…
+          </div>
+        </div>
+        <div id="pagination"></div>
       </div>
-      <div id="pagination"></div>
+
     </div>
-
   </div>
-</div>
 
-<script src="common.js"></script>
-<script>
-/* ── State ── */
-const state = { tasks: [], tags: [], from: '', to: '', page: 1 };
+  <script src="common.js"></script>
+  <script>
+    /* ── State ── */
+    const state = { tasks: [], tags: [], from: '', to: '', page: 1 };
 
-/* ── Init tags ── */
-const tagList = document.getElementById('tag-list');
-Object.entries(YB.FEED_TAGS).forEach(([key, label]) => {
-  const id = 'tag-' + key;
-  const item = document.createElement('label');
-  item.className = 'check-item';
-  item.innerHTML = `<input type="checkbox" id="${id}" value="${key}"> ${YB.esc(label)}`;
-  item.querySelector('input').addEventListener('change', () => {
-    state.tags = [...tagList.querySelectorAll('input:checked')].map(i => i.value);
-    state.page = 1;
-    runQuery();
-  });
-  tagList.appendChild(item);
-});
+    /* ── Init tags ── */
+    const tagList = document.getElementById('tag-list');
+    Object.entries(YB.FEED_TAGS).forEach(([key, label]) => {
+      const id = 'tag-' + key;
+      const item = document.createElement('label');
+      item.className = 'check-item';
+      item.innerHTML = `<input type="checkbox" id="${id}" value="${key}"> ${YB.esc(label)}`;
+      item.querySelector('input').addEventListener('change', () => {
+        state.tags = [...tagList.querySelectorAll('input:checked')].map(i => i.value);
+        state.page = 1;
+        runQuery();
+      });
+      tagList.appendChild(item);
+    });
 
-document.getElementById('tag-clear').addEventListener('click', e => {
-  e.preventDefault();
-  tagList.querySelectorAll('input').forEach(i => i.checked = false);
-  state.tags = []; state.page = 1; runQuery();
-});
+    document.getElementById('tag-clear').addEventListener('click', e => {
+      e.preventDefault();
+      tagList.querySelectorAll('input').forEach(i => i.checked = false);
+      state.tags = []; state.page = 1; runQuery();
+    });
 
-/* ── School autocomplete ── */
-const schoolInput    = document.getElementById('school-input');
-const schoolDropdown = document.getElementById('school-dropdown');
-const selectedPills  = document.getElementById('selected-tasks');
+    /* ── School autocomplete ── */
+    const schoolInput = document.getElementById('school-input');
+    const schoolDropdown = document.getElementById('school-dropdown');
+    const selectedPills = document.getElementById('selected-tasks');
 
-const searchSchools = YB.debounce(async (val) => {
-  if (!val.trim()) { schoolDropdown.style.display = 'none'; return; }
-  try {
-    const data = await YB.callTool('list_feed_tasks', { schoolName: val.trim(), limit: 8 });
-    const tasks = (data.tasks || []).filter(t => !state.tasks.find(s => s.id === t._id));
-    if (!tasks.length) { schoolDropdown.style.display = 'none'; return; }
-    schoolDropdown.innerHTML = tasks.map(t => `
+    const searchSchools = YB.debounce(async (val) => {
+      if (!val.trim()) { schoolDropdown.style.display = 'none'; return; }
+      try {
+        const data = await YB.callTool('list_feed_tasks', { schoolName: val.trim(), limit: 8 });
+        const tasks = (data.tasks || []).filter(t => !state.tasks.find(s => s.id === t._id));
+        if (!tasks.length) { schoolDropdown.style.display = 'none'; return; }
+        schoolDropdown.innerHTML = tasks.map(t => `
       <div class="autocomplete-item" data-id="${YB.esc(t._id)}" data-name="${YB.esc(t.school?.name || t.title)}">
         <div class="autocomplete-name">${YB.esc(t.school?.name || t.title)}</div>
         <div class="autocomplete-sub">${YB.esc(t.title)}</div>
       </div>`).join('');
-    schoolDropdown.style.display = 'block';
-  } catch { schoolDropdown.style.display = 'none'; }
-}, 400);
+        schoolDropdown.style.display = 'block';
+      } catch { schoolDropdown.style.display = 'none'; }
+    }, 400);
 
-schoolInput.addEventListener('input', e => searchSchools(e.target.value));
-schoolDropdown.addEventListener('click', e => {
-  const item = e.target.closest('.autocomplete-item');
-  if (!item) return;
-  const id = item.dataset.id, name = item.dataset.name;
-  if (!state.tasks.find(t => t.id === id)) {
-    state.tasks.push({ id, name });
-    renderPills();
-    state.page = 1;
-    runQuery();
-  }
-  schoolInput.value = '';
-  schoolDropdown.style.display = 'none';
-});
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.autocomplete-wrap')) schoolDropdown.style.display = 'none';
-});
-
-function renderPills() {
-  selectedPills.innerHTML = state.tasks.map(t =>
-    `<span class="pill">${YB.esc(t.name)}<span class="pill-remove" data-id="${YB.esc(t.id)}">×</span></span>`
-  ).join('');
-  selectedPills.querySelectorAll('.pill-remove').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.tasks = state.tasks.filter(t => t.id !== btn.dataset.id);
-      renderPills(); state.page = 1; runQuery();
+    schoolInput.addEventListener('input', e => searchSchools(e.target.value));
+    schoolDropdown.addEventListener('click', e => {
+      const item = e.target.closest('.autocomplete-item');
+      if (!item) return;
+      const id = item.dataset.id, name = item.dataset.name;
+      if (!state.tasks.find(t => t.id === id)) {
+        state.tasks.push({ id, name });
+        renderPills();
+        state.page = 1;
+        runQuery();
+      }
+      schoolInput.value = '';
+      schoolDropdown.style.display = 'none';
     });
-  });
-}
 
-/* ── Date filters ── */
-const debouncedQuery = YB.debounce(() => { state.page = 1; runQuery(); }, 300);
-document.getElementById('date-from').addEventListener('change', e => { state.from = e.target.value; debouncedQuery(); });
-document.getElementById('date-to').addEventListener('change',   e => { state.to   = e.target.value; debouncedQuery(); });
-
-/* ── Search / Reset ── */
-document.getElementById('search-btn').addEventListener('click', () => { state.page = 1; runQuery(); });
-document.getElementById('reset-btn').addEventListener('click', () => {
-  state.tasks = []; state.tags = []; state.from = ''; state.to = ''; state.page = 1;
-  renderPills();
-  tagList.querySelectorAll('input').forEach(i => i.checked = false);
-  document.getElementById('date-from').value = '';
-  document.getElementById('date-to').value   = '';
-  runQuery();
-});
-
-/* ── Query ── */
-async function runQuery() {
-  const el = document.getElementById('feed-results');
-  YB.showLoading(el);
-  document.getElementById('pagination').innerHTML = '';
-  document.getElementById('result-count').textContent = '';
-
-  const args = {
-    pageSize: 20, page: state.page,
-    sortBy: 'isoDate', sortOrder: 'desc',
-    fields: ['_id','title','link','isoDate','tags','feedMeta'],
-  };
-  if (state.tasks.length)  args.taskIds = state.tasks.map(t => t.id);
-  if (state.tags.length)   args.tagKeys = state.tags;
-  if (state.from) args.publishedFrom = state.from;
-  if (state.to)   args.publishedTo   = state.to;
-
-  try {
-    const data = await YB.callTool('query_feeds', args);
-    const items = data.list || [];
-    const pg    = data.pagination;
-
-    document.getElementById('result-count').textContent = `共 ${pg.total.toLocaleString('zh-CN')} 篇`;
-
-    if (!items.length) { YB.showEmpty(el, '未找到符合条件的资讯'); return; }
-    el.innerHTML = '<div class="feed-list">' + items.map(feedCard).join('') + '</div>';
-
-    YB.renderPagination(document.getElementById('pagination'), pg, p => {
-      state.page = p; runQuery(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.autocomplete-wrap')) schoolDropdown.style.display = 'none';
     });
-  } catch (err) {
-    YB.showError(el, err.message);
-  }
-}
 
-function feedCard(item) {
-  const tags = (item.tags || []).map(t => YB.renderTagChip(t)).join('');
-  const src  = YB.esc(item.feedMeta?.title || '');
-  const date = YB.formatDate(item.isoDate);
-  return `
+    function renderPills() {
+      selectedPills.innerHTML = state.tasks.map(t =>
+        `<span class="pill">${YB.esc(t.name)}<span class="pill-remove" data-id="${YB.esc(t.id)}">×</span></span>`
+      ).join('');
+      selectedPills.querySelectorAll('.pill-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.tasks = state.tasks.filter(t => t.id !== btn.dataset.id);
+          renderPills(); state.page = 1; runQuery();
+        });
+      });
+    }
+
+    /* ── Date filters ── */
+    const debouncedQuery = YB.debounce(() => { state.page = 1; runQuery(); }, 300);
+    document.getElementById('date-from').addEventListener('change', e => { state.from = e.target.value; debouncedQuery(); });
+    document.getElementById('date-to').addEventListener('change', e => { state.to = e.target.value; debouncedQuery(); });
+
+    /* ── Search / Reset ── */
+    document.getElementById('search-btn').addEventListener('click', () => { state.page = 1; runQuery(); });
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      state.tasks = []; state.tags = []; state.from = ''; state.to = ''; state.page = 1;
+      renderPills();
+      tagList.querySelectorAll('input').forEach(i => i.checked = false);
+      document.getElementById('date-from').value = '';
+      document.getElementById('date-to').value = '';
+      runQuery();
+    });
+
+    /* ── Query ── */
+    async function runQuery() {
+      const el = document.getElementById('feed-results');
+      YB.showLoading(el);
+      document.getElementById('pagination').innerHTML = '';
+      document.getElementById('result-count').textContent = '';
+
+      const args = {
+        pageSize: 20, page: state.page,
+        sortBy: 'isoDate', sortOrder: 'desc',
+        fields: ['_id', 'title', 'link', 'isoDate', 'tags', 'feedMeta'],
+      };
+      if (state.tasks.length) args.taskIds = state.tasks.map(t => t.id);
+      if (state.tags.length) args.tagKeys = state.tags;
+      if (state.from) args.publishedFrom = state.from;
+      if (state.to) args.publishedTo = state.to;
+
+      try {
+        const data = await YB.callTool('query_feeds', args);
+        const items = data.list || [];
+        const pg = data.pagination;
+
+        document.getElementById('result-count').textContent = `共 ${pg.total.toLocaleString('zh-CN')} 篇`;
+
+        if (!items.length) { YB.showEmpty(el, '未找到符合条件的资讯'); return; }
+        el.innerHTML = '<div class="feed-list">' + items.map(feedCard).join('') + '</div>';
+
+        YB.renderPagination(document.getElementById('pagination'), pg, p => {
+          state.page = p; runQuery(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      } catch (err) {
+        YB.showError(el, err.message);
+      }
+    }
+
+    function feedCard(item) {
+      const tags = (item.tags || []).map(t => YB.renderTagChip(t)).join('');
+      const src = YB.esc(item.feedMeta?.title || '');
+      const date = YB.formatDate(item.isoDate);
+      return `
     <div class="feed-item">
-      <a href="${YB.esc(item.link||'#')}" target="_blank" rel="noopener" class="feed-title">${YB.esc(item.title||'无标题')}</a>
+      <a href="${YB.esc(item.link || '#')}" target="_blank" rel="noopener" class="feed-title">${YB.esc(item.title || '无标题')}</a>
       <div class="feed-meta">
-        ${src  ? `<span class="feed-source">${src}</span>` : ''}
+        ${src ? `<span class="feed-source">${src}</span>` : ''}
         ${date ? `<span>${date}</span>` : ''}
-        <a href="${YB.esc(item.link||'#')}" target="_blank" rel="noopener" class="feed-link">查看原文 ↗</a>
+        <a href="${YB.esc(item.link || '#')}" target="_blank" rel="noopener" class="feed-link">查看原文 ↗</a>
       </div>
       ${tags ? `<div class="feed-tags">${tags}</div>` : ''}
     </div>`;
-}
+    }
 
-/* ── Startup ── */
-YB.pollStatus(document.getElementById('badge'), () => {
-  document.getElementById('search-btn').disabled = false;
-  runQuery();
-});
-</script>
+    /* ── Startup ── */
+    YB.pollStatus(document.getElementById('badge'), () => {
+      document.getElementById('search-btn').disabled = false;
+      runQuery();
+    });
+  </script>
 </body>
+
 </html>

@@ -308,9 +308,9 @@ Present this as a formatted table in the response:
 
 | 你可以这么问 | 触发的工具 |
 |-------------|-----------|
-| "查一下山东大学计算机专业2024年的分数线" | `query_school_scores` |
-| "哪些学校计算机专业2024年平均分在300-350之间？" | `query_school_scores` / `aggregate_school_scores` |
-| "帮我对比北航和南航2024年的录取分数" | `query_school_scores` (多校对比) |
+| "查一下山东大学计算机专业2025年的分数线" | `query_school_scores` |
+| "哪些学校计算机专业2025年平均分在300-350之间？" | `query_school_scores` / `aggregate_school_scores` |
+| "帮我对比北航和南航2025年的录取分数" | `query_school_scores` (多校对比) |
 | "081200专业有哪些学校招调剂？" | `query_school_scores` |
 
 #### 🔄 调剂信息查询
@@ -319,7 +319,7 @@ Present this as a formatted table in the response:
 |-------------|-----------|
 | "340分能调剂到哪些学校？专业代码081200" | `query_adjustments` |
 | "一志愿山东大学，有哪些校内调剂机会？" | `query_adjustments` |
-| "2024年校外调剂有哪些院校接收？" | `query_adjustments` |
+| "2025年校外调剂有哪些院校接收？" | `query_adjustments` |
 | "统计各学校调剂的平均分和人数" | `aggregate_adjustments` |
 
 #### 📰 资讯/动态查询

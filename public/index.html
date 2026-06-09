@@ -6,8 +6,12 @@
 <title>研bot · 考研数据平台</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.home-grid { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; }
+.home-grid { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
 @media (max-width: 768px) { .home-grid { grid-template-columns: 1fr; } }
+.hero { padding: 2rem 0 1.75rem; }
+.hero-title { font-size: 2.625rem; font-weight: 700; letter-spacing: -.04em; color: #1d1d1f; line-height: 1.12; }
+.hero-title em { color: #0071e3; font-style: normal; }
+.hero-sub { margin-top: 0.5rem; font-size: 1.0625rem; color: #6e6e73; font-weight: 400; }
 </style>
 </head>
 <body>
@@ -25,8 +29,14 @@
 
 <div class="container">
 
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-title">研<em>bot</em></div>
+    <div class="hero-sub">考研数据平台 · 资讯、分数线、调剂记录一站查询</div>
+  </div>
+
   <!-- Stats -->
-  <div class="stats-bar" style="margin-bottom:1.4rem">
+  <div class="stats-bar" style="margin-bottom:2rem">
     <div class="stat-item">
       <div class="stat-value" id="stat-feeds">—</div>
       <div class="stat-label">资讯动态</div>
@@ -45,8 +55,8 @@
 
     <!-- Left: nav cards -->
     <div>
-      <div class="section-title" style="margin-bottom:.75rem">功能入口</div>
-      <div style="display:flex;flex-direction:column;gap:.875rem">
+      <div class="section-title" style="margin-bottom:.875rem">功能入口</div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
         <a href="feeds.html" class="nav-card">
           <div class="nav-card-icon">📰</div>
           <div class="nav-card-title">资讯动态</div>
@@ -64,9 +74,9 @@
 
     <!-- Right: latest feeds -->
     <div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
         <div class="section-title">最新资讯</div>
-        <a href="feeds.html" style="font-size:.8125rem;color:var(--c-accent);text-decoration:none">查看全部 →</a>
+        <a href="feeds.html" style="font-size:.875rem;color:var(--c-accent);text-decoration:none;font-weight:500">查看全部 →</a>
       </div>
       <div id="latest-feeds">
         <div class="state-loading"><div class="spinner"></div>加载中…</div>
