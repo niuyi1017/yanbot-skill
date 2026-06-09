@@ -10,3 +10,6 @@ Thumbs.db
 # IDE
 .idea/
 .vscode/
+
+# User-created custom pages — never overwritten by git pull / reinstall
+public/user/

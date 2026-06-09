@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的页面 · 研bot</title>
+  <link rel="stylesheet" href="../common.css">
+  <!-- 可选：页面私有样式写在这里 -->
+  <style>
+    /* .my-section { ... } */
+  </style>
+</head>
+
+<body>
+
+  <!-- ① 导航栏：复制自其他页面，active 改成本页链接 -->
+  <header class="page-header">
+    <a href="/" class="header-brand">研<em>bot</em></a>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">首页</a>
+      <a href="../feeds.html" class="nav-link">资讯动态</a>
+      <a href="../data.html" class="nav-link">数据查询</a>
+      <a href="template.html" class="nav-link active">我的页面</a>
+    </nav>
+    <div class="header-right">
+      <!-- ② 连接状态徽章（必须保留，pollStatus 会更新它） -->
+      <span id="badge" class="badge connecting">连接中…</span>
+    </div>
+  </header>
+
+  <!-- ③ 主体内容 -->
+  <div class="container">
+
+    <div class="page-title" style="margin-bottom:1.5rem">我的页面</div>
+
+    <!-- 筛选区（可选） -->
+    <div class="filter-bar" style="margin-bottom:1.25rem">
+      <input type="text" id="keyword-input" placeholder="输入关键词…" style="width:260px">
+      <button class="btn btn-primary" id="search-btn">查询</button>
+    </div>
+
+    <!-- 结果区 -->
+    <div id="result">
+      <div class="state-loading">
+        <div class="spinner"></div>等待连接…
+      </div>
+    </div>
+
+    <!-- 分页区 -->
+    <div id="pagination"></div>
+
+  </div>
+
+  <!-- ④ 引入公共 JS（必须在 body 末尾） -->
+  <script src="../common.js"></script>
+  <script>
+    /* ⑤ 等 MCP 连接就绪后再加载数据 */
+    YB.pollStatus(document.getElementById('badge'), () => loadData(1));
+
+    /* 分页状态 */
+    let currentPage = 1;
+    let currentSortBy = 'isoDate';
+    let currentSortOrder = 'desc';
+
+    document.getElementById('search-btn').addEventListener('click', () => loadData(1));
+
+    async function loadData(page) {
+      currentPage = page;
+      const el = document.getElementById('result');
+      const pgEl = document.getElementById('pagination');
+      YB.showLoading(el);
+
+      const keyword = document.getElementById('keyword-input').value.trim() || undefined;
+
+      try {
+        /* ⑥ 调用 MCP 工具：tool 名称参见 common.js YB.callTool 注释 */
+        const data = await YB.callTool('query_feeds', {
+          keyword,
+          page,
+          pageSize: 20,
+          sortBy: currentSortBy,
+          sortOrder: currentSortOrder,
+        });
+
+        /* ⑦ 渲染表格 */
+        YB.renderTable(el, data.list, [
+          { key: 'title', label: '标题', fmt: (v, row) => `<a href="${YB.esc(row.link || '#')}" target="_blank" rel="noopener">${YB.esc(v)}</a>` },
+          { key: 'isoDate', label: '发布时间', fmt: v => YB.formatDate(v), sortKey: 'isoDate' },
+        ], {
+          sortBy: currentSortBy,
+          sortOrder: currentSortOrder,
+          onSort: key => {
+            if (currentSortBy === key) currentSortOrder = currentSortOrder === 'desc' ? 'asc' : 'desc';
+            else { currentSortBy = key; currentSortOrder = 'desc'; }
+            loadData(1);
+          },
+          emptyMsg: '没有符合条件的数据',
+        });
+
+        /* ⑧ 渲染分页 */
+        YB.renderPagination(pgEl, data.pagination, p => loadData(p));
+
+      } catch (err) {
+        YB.showError(el, err.message);
+      }
+    }
+  </script>
+</body>
+
+</html>
