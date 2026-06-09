@@ -486,13 +486,17 @@ xdg-open http://localhost:3000
 
 ## Overview
 
-`server.js` 把 `public/` 目录当作静态根目录伺服，任何放入 `public/` 的 `.html` 文件都会立即被托管。页面通过 `/api/call` 与后端 MCP 通信，共用 `common.css` / `common.js` 提供的 UI 工具包，无需构建工具。
+`server.js` 把 `public/` 目录当作静态根目录伺服，任何放入 `public/user/` 的 `.html` 文件都会立即被托管。页面通过 `/api/call` 与后端 MCP 通信，共用 `common.css` / `common.js` 提供的 UI 工具包，无需构建工具。
+
+### 为什么放 `public/user/` 而不是 `public/`
+
+`public/user/` 已被加入 `.gitignore`，**git pull / 重装 skill 不会覆盖或删除该目录下的文件**。`public/` 根目录下的内置页面（index.html / feeds.html / data.html）会随 skill 更新，用户自定义页面则完全隔离。
 
 ### 架构一览
 
 ```
-浏览器 → GET /mypage.html → server.js → public/mypage.html（静态文件）
-浏览器 → POST /api/call   → server.js → MCP callTool() → api.yanbot.tech
+浏览器 → GET /user/mypage.html → server.js → public/user/mypage.html（静态文件，gitignored）
+浏览器 → POST /api/call        → server.js → MCP callTool() → api.yanbot.tech
 ```
 
 ## Auto-Trigger
@@ -509,7 +513,15 @@ xdg-open http://localhost:3000
 
 ## Step 1 — 创建 HTML 文件
 
-在 `public/` 目录下新建 `<pagename>.html`。**最快方式**：复制模板文件 `public/template.html` 并重命名，再按需修改。
+在 **`public/user/`** 目录下新建 `<pagename>.html`。**最快方式**：复制模板文件 `public/template.html` 到 `public/user/` 并重命名，再按需修改。
+
+```bash
+# macOS / Linux
+cp "$SKILL_DIR/public/template.html" "$SKILL_DIR/public/user/mypage.html"
+
+# Windows PowerShell
+Copy-Item "$Env:SKILL_DIR\public\template.html" "$Env:SKILL_DIR\public\user\mypage.html"
+```
 
 ### 页面必须包含的结构
 
@@ -520,17 +532,17 @@ xdg-open http://localhost:3000
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>页面标题 · 研bot</title>
-  <link rel="stylesheet" href="common.css">   <!-- ① 公共样式，必须引入 -->
+  <link rel="stylesheet" href="../common.css">   <!-- ① 公共样式，路径相对 user/ -->
 </head>
 <body>
 
-<!-- ② 导航栏（从其他页面复制，active 改为本页链接） -->
+<!-- ② 导航栏（从其他页面复制，active 改为本页链接；注意路径加 ../ 前缀） -->
 <header class="page-header">
   <a href="/" class="header-brand">研<em>bot</em></a>
   <nav class="header-nav">
     <a href="/" class="nav-link">首页</a>
-    <a href="feeds.html" class="nav-link">资讯动态</a>
-    <a href="data.html"  class="nav-link">数据查询</a>
+    <a href="../feeds.html" class="nav-link">资讯动态</a>
+    <a href="../data.html"  class="nav-link">数据查询</a>
     <a href="mypage.html" class="nav-link active">我的页面</a>
   </nav>
   <div class="header-right">
@@ -544,7 +556,7 @@ xdg-open http://localhost:3000
   <div id="pagination"></div>
 </div>
 
-<script src="common.js"></script>  <!-- ⑤ 公共 JS，必须在 body 末尾 -->
+<script src="../common.js"></script>  <!-- ⑤ 公共 JS，路径相对 user/，必须在 body 末尾 -->
 <script>
   // ⑥ 页面逻辑
   YB.pollStatus(document.getElementById('badge'), () => loadData(1));
@@ -558,9 +570,10 @@ xdg-open http://localhost:3000
 
 | 规则 | 说明 |
 |------|------|
-| 文件放在 `public/` | 其他路径不会被 server.js 托管 |
-| 必须引入 `common.css` | 保证样式一致性 |
-| 必须引入 `common.js`（body 末尾）| 提供 `YB.*` 工具函数 |
+| **文件放在 `public/user/`** | 此目录已 gitignore，重装 skill 不会覆盖；`public/` 根目录下的文件会被 git 覆盖 |
+| CSS/JS 引用路径用 `../` | 文件在子目录，`common.css` / `common.js` 在父目录 |
+| 必须引入 `../common.css` | 保证样式一致性 |
+| 必须引入 `../common.js`（body 末尾）| 提供 `YB.*` 工具函数 |
 | 必须有 `id="badge"` 的 span | `YB.pollStatus` 会更新它 |
 | 必须调用 `YB.pollStatus` | MCP 就绪前不要发起数据请求 |
 | 不要修改 `server.js` | 所有 MCP 访问都走 `/api/call`，无需改后端 |
@@ -676,13 +689,13 @@ YB.renderTable(el, rows, [
 
 ## Step 5 — 访问新页面
 
-服务器运行中直接访问：
+服务器运行中直接访问（注意路径含 `/user/`）：
 
 ```
-http://localhost:3000/mypage.html
+http://localhost:3000/user/mypage.html
 ```
 
-若使用了非默认端口（如 3001），地址改为 `http://localhost:3001/mypage.html`。
+若使用了非默认端口（如 3001），地址改为 `http://localhost:3001/user/mypage.html`。
 
 ---
 
@@ -690,7 +703,7 @@ http://localhost:3000/mypage.html
 
 | 症状 | 解决 |
 |------|------|
-| 访问新页面返回 404 | 确认文件保存在 `public/` 目录下，文件名大小写与 URL 一致 |
+| 访问新页面返回 404 | 确认文件保存在 `public/user/` 目录下，URL 路径为 `/user/mypage.html` |
 | `YB is not defined` | `common.js` 未引入，或引入在 `<head>` 而非 body 末尾 |
 | 数据加载但徽章卡在「连接中…」| 检查 `id="badge"` 是否存在；确认调用了 `YB.pollStatus` |
 | `callTool` 报 "MCP session not ready" | server.js 正在重连，等 2s 后 `YB.pollStatus` 会自动重试 |

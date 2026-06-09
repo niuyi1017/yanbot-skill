@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>我的页面 · 研bot</title>
-  <link rel="stylesheet" href="common.css">
+  <link rel="stylesheet" href="../common.css">
   <!-- 可选：页面私有样式写在这里 -->
   <style>
     /* .my-section { ... } */
@@ -19,8 +19,8 @@
     <a href="/" class="header-brand">研<em>bot</em></a>
     <nav class="header-nav">
       <a href="/" class="nav-link">首页</a>
-      <a href="feeds.html" class="nav-link">资讯动态</a>
-      <a href="data.html" class="nav-link">数据查询</a>
+      <a href="../feeds.html" class="nav-link">资讯动态</a>
+      <a href="../data.html" class="nav-link">数据查询</a>
       <a href="template.html" class="nav-link active">我的页面</a>
     </nav>
     <div class="header-right">
@@ -53,7 +53,7 @@
   </div>
 
   <!-- ④ 引入公共 JS（必须在 body 末尾） -->
-  <script src="common.js"></script>
+  <script src="../common.js"></script>
   <script>
     /* ⑤ 等 MCP 连接就绪后再加载数据 */
     YB.pollStatus(document.getElementById('badge'), () => loadData(1));
