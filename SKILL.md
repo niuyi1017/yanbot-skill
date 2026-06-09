@@ -16,6 +16,7 @@ agent_created: true
 |-----------|-------|
 | "安装研bot" / "install yanbot" / "配置研bot" / "接入研bot MCP" | **功能一：MCP 接入与配置** |
 | "打开研bot网页" / "open dashboard" / "launch web UI" / "打开网页界面" / "启动研bot界面" | **功能五：Web Dashboard** |
+| "新建页面" / "创建页面" / "add page" / "新增页面" / "自定义页面" / "开发页面" | **功能六：自定义页面开发** |
 | "研bot 能做什么" / "研bot 有哪些功能" | 列出本文件下所有 `## Feature` 章节标题 |
 | 其他研bot 相关请求 | 先确认目标功能，再路由；若尚未实装则告知「该功能规划中」并指引使用功能一 |
 
@@ -30,6 +31,7 @@ agent_created: true
 | 3 | 定向监控（指定院校 / 专业的资讯订阅） | ⏳ 规划中 | — |
 | 4 | 报告生成（择校 / 调剂决策报告） | ⏳ 规划中 | — |
 | 5 | Web Dashboard（网页可视化界面） | ✅ 已实装 | [Feature 5](#feature-5--web-dashboard) |
+| 6 | 自定义页面开发（用户新增页面指南） | ✅ 已实装 | [Feature 6](#feature-6--自定义页面开发) |
 
 > 新增功能时，在本表登记一行，并在下方追加一个 `## Feature N — <名称>` 章节，章节内沿用 `Step 0 / Step 1 / ...` 的结构。**不要**改动已有功能章节的编号。
 
@@ -476,4 +478,221 @@ xdg-open http://localhost:3000
 | 页面一直显示「连接中…」 | 检查网络是否能访问 api.yanbot.tech；确认 Feature 1 MCP 连通 |
 | 查询返回"MCP session not ready" | 等待 2s 后重试，服务器正在重连 MCP |
 | node 命令未找到 | 安装 Node.js ≥ 16：https://nodejs.org |
-| 浏览器报 "Failed to fetch" | 确认 server.js 仍在运行（未意外退出）
+| 浏览器报 "Failed to fetch" | 确认 server.js 仍在运行（未意外退出） |
+
+---
+
+# Feature 6 — 自定义页面开发
+
+## Overview
+
+`server.js` 把 `public/` 目录当作静态根目录伺服，任何放入 `public/` 的 `.html` 文件都会立即被托管。页面通过 `/api/call` 与后端 MCP 通信，共用 `common.css` / `common.js` 提供的 UI 工具包，无需构建工具。
+
+### 架构一览
+
+```
+浏览器 → GET /mypage.html → server.js → public/mypage.html（静态文件）
+浏览器 → POST /api/call   → server.js → MCP callTool() → api.yanbot.tech
+```
+
+## Auto-Trigger
+
+当用户说 **"新建页面" / "创建页面" / "add page" / "新增页面" / "自定义页面" / "开发页面"** 时，立即询问页面名称和用途，然后执行 Step 1 → Step 4。
+
+---
+
+## Step 0 — 确认 server.js 已运行
+
+若用户尚未启动服务器，先执行 Feature 5 Step 1 启动服务器，再继续。
+
+---
+
+## Step 1 — 创建 HTML 文件
+
+在 `public/` 目录下新建 `<pagename>.html`。**最快方式**：复制模板文件 `public/template.html` 并重命名，再按需修改。
+
+### 页面必须包含的结构
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>页面标题 · 研bot</title>
+  <link rel="stylesheet" href="common.css">   <!-- ① 公共样式，必须引入 -->
+</head>
+<body>
+
+<!-- ② 导航栏（从其他页面复制，active 改为本页链接） -->
+<header class="page-header">
+  <a href="/" class="header-brand">研<em>bot</em></a>
+  <nav class="header-nav">
+    <a href="/" class="nav-link">首页</a>
+    <a href="feeds.html" class="nav-link">资讯动态</a>
+    <a href="data.html"  class="nav-link">数据查询</a>
+    <a href="mypage.html" class="nav-link active">我的页面</a>
+  </nav>
+  <div class="header-right">
+    <span id="badge" class="badge connecting">连接中…</span>  <!-- ③ 状态徽章，必须保留 -->
+  </div>
+</header>
+
+<div class="container">
+  <!-- ④ 页面主体内容 -->
+  <div id="result"></div>
+  <div id="pagination"></div>
+</div>
+
+<script src="common.js"></script>  <!-- ⑤ 公共 JS，必须在 body 末尾 -->
+<script>
+  // ⑥ 页面逻辑
+  YB.pollStatus(document.getElementById('badge'), () => loadData(1));
+  async function loadData(page) { /* ... */ }
+</script>
+</body>
+</html>
+```
+
+### 约束清单
+
+| 规则 | 说明 |
+|------|------|
+| 文件放在 `public/` | 其他路径不会被 server.js 托管 |
+| 必须引入 `common.css` | 保证样式一致性 |
+| 必须引入 `common.js`（body 末尾）| 提供 `YB.*` 工具函数 |
+| 必须有 `id="badge"` 的 span | `YB.pollStatus` 会更新它 |
+| 必须调用 `YB.pollStatus` | MCP 就绪前不要发起数据请求 |
+| 不要修改 `server.js` | 所有 MCP 访问都走 `/api/call`，无需改后端 |
+| 不要引入外部 CDN | 页面是本地离线服务，保持零依赖 |
+
+---
+
+## Step 2 — 调用 MCP 工具
+
+`YB.callTool(toolName, args)` 向 `/api/call` 发送 POST，返回 MCP 工具的结果对象。
+
+```js
+// 查询资讯
+const data = await YB.callTool('query_feeds', {
+  keyword: '调剂',
+  pageSize: 20,
+  page: 1,
+});
+// data.list      — 数据数组
+// data.pagination — { page, totalPages, total }
+
+// 查询分数线
+const scores = await YB.callTool('query_school_scores', {
+  schoolName: '山东大学',
+  year: 2025,
+});
+
+// 查询调剂
+const adj = await YB.callTool('query_adjustments', {
+  minScore: 330,
+  targetSubjectCode: '081200',
+});
+
+// 聚合统计
+const agg = await YB.callTool('aggregate_adjustments', {
+  groupBy: 'targetSchool',
+  minScore: 330,
+  metrics: ['count', 'avgScore'],
+});
+// agg.groups — [{ key, count, avgScore }, ...]
+```
+
+### 常用工具速查
+
+| 工具名 | 用途 |
+|--------|------|
+| `query_feeds` | 院校资讯列表 |
+| `query_school_scores` | 历年分数线 |
+| `query_adjustments` | 调剂录取记录 |
+| `query_schools` | 院校基础信息 |
+| `aggregate_feeds` | 资讯聚合统计 |
+| `aggregate_adjustments` | 调剂聚合统计 |
+| `aggregate_school_scores` | 分数线聚合 |
+
+完整工具参数请参考 Feature 1 Step 3 示例，或直接问 AI："research yanbot MCP 工具 `query_adjustments` 有哪些参数？"
+
+---
+
+## Step 3 — 使用 UI 工具函数
+
+`common.js` 暴露 `window.YB` 命名空间，包含以下实用函数：
+
+| 函数 | 说明 |
+|------|------|
+| `YB.callTool(tool, args)` | 调用 MCP 工具，返回 Promise |
+| `YB.pollStatus(badgeEl, onReady)` | 轮询 `/api/status`，就绪后回调 |
+| `YB.renderTable(el, rows, colDefs, opts)` | 渲染可排序表格 |
+| `YB.renderPagination(el, pagination, onPage)` | 渲染分页控件 |
+| `YB.showLoading(el)` | 显示加载占位 |
+| `YB.showError(el, msg)` | 显示错误提示 |
+| `YB.showEmpty(el, msg)` | 显示空状态提示 |
+| `YB.esc(str)` | HTML 转义（XSS 防护，输出到 innerHTML 时必用） |
+| `YB.formatDate(isoStr)` | 友好时间格式（"3 小时前"）|
+| `YB.formatScore(v)` | 分数格式化，0/null → `—` |
+| `YB.formatNum(v)` | 数字格式化，带千分位 |
+| `YB.debounce(fn, ms)` | 防抖 |
+| `YB.renderTagChip(key)` | 渲染资讯标签 chip（带颜色）|
+
+### renderTable colDefs 格式
+
+```js
+YB.renderTable(el, rows, [
+  { key: 'schoolName', label: '院校',   cls: 'text-bold' },
+  { key: 'lowestScore', label: '最低分', sortKey: 'lowestScore',
+    fmt: v => YB.formatScore(v) },
+  { key: 'year',       label: '年份',   sortKey: 'year' },
+], {
+  sortBy: currentSortBy,
+  sortOrder: currentSortOrder,
+  onSort: key => { /* 更新 sortBy/sortOrder 后重新 loadData */ },
+  emptyMsg: '未找到数据',
+});
+```
+
+---
+
+## Step 4 — （可选）加入全局导航
+
+若希望新页面出现在所有页面的顶部导航栏，需同步修改以下文件中的 `<nav class="header-nav">` 区块：
+
+- `public/index.html`
+- `public/feeds.html`
+- `public/data.html`
+
+每处添加一行：
+```html
+<a href="mypage.html" class="nav-link">页面名称</a>
+```
+
+> ⚠️ 修改导航时要保持每个页面自己的 `active` 类不变。
+
+---
+
+## Step 5 — 访问新页面
+
+服务器运行中直接访问：
+
+```
+http://localhost:3000/mypage.html
+```
+
+若使用了非默认端口（如 3001），地址改为 `http://localhost:3001/mypage.html`。
+
+---
+
+## Common Issues
+
+| 症状 | 解决 |
+|------|------|
+| 访问新页面返回 404 | 确认文件保存在 `public/` 目录下，文件名大小写与 URL 一致 |
+| `YB is not defined` | `common.js` 未引入，或引入在 `<head>` 而非 body 末尾 |
+| 数据加载但徽章卡在「连接中…」| 检查 `id="badge"` 是否存在；确认调用了 `YB.pollStatus` |
+| `callTool` 报 "MCP session not ready" | server.js 正在重连，等 2s 后 `YB.pollStatus` 会自动重试 |
+| 页面样式异常 | 确认引入了 `common.css`；自定义样式写在 `<style>` 里，不要覆盖 CSS 变量 |
+| innerHTML XSS 风险 | 所有从 API 来的字符串输出到 HTML 前必须经过 `YB.esc()` |
