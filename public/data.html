@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>数据查询 · 研bot</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+
+<body>
+  <header class="page-header">
+    <a href="/" class="header-brand">研<em>bot</em></a>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">首页</a>
+      <a href="feeds.html" class="nav-link">资讯动态</a>
+      <a href="data.html" class="nav-link active">数据查询</a>
+    </nav>
+    <div class="header-right">
+      <span id="badge" class="badge connecting">连接中…</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="scores">📊 录取分数线</button>
+      <button class="tab-btn" data-tab="adj">🔄 调剂记录</button>
+    </div>
+
+    <!-- ══════════ Tab: 录取分数线 ══════════ -->
+    <div class="tab-panel active" id="tab-scores">
+      <div class="card card-body" style="margin-bottom:1.25rem">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">学校名</label>
+            <input type="text" id="sc-school" placeholder="如：北京大学" style="width:160px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">专业名/代码</label>
+            <input type="text" id="sc-subject" placeholder="如：计算机 或 081200" style="width:180px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">年份</label>
+            <select id="sc-year" style="width:100px">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">院校层次</label>
+            <select id="sc-level" style="width:120px">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">学习形式</label>
+            <div class="radio-group">
+              <label class="radio-label"><input type="radio" name="sc-form" value="">不限</label>
+              <label class="radio-label"><input type="radio" name="sc-form" value="全日制">全日制</label>
+              <label class="radio-label"><input type="radio" name="sc-form" value="非全日制">非全</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">最低分 ≥</label>
+            <input type="number" id="sc-minscore" placeholder="如：300" style="width:90px" min="0" max="500">
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button id="sc-btn" class="btn btn-primary" disabled>搜索</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-header">
+        <span class="result-count" id="sc-count"></span>
+      </div>
+      <div id="sc-results"></div>
+      <div id="sc-pagination"></div>
+    </div>
+
+    <!-- ══════════ Tab: 调剂记录 ══════════ -->
+    <div class="tab-panel" id="tab-adj">
+      <div class="card card-body" style="margin-bottom:1.25rem">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">目标院校</label>
+            <input type="text" id="adj-school" placeholder="如：武汉大学" style="width:160px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">专业代码（6位）</label>
+            <input type="text" id="adj-subject" placeholder="如：081200" style="width:150px" maxlength="6">
+          </div>
+          <div class="form-group">
+            <label class="form-label">来源院校</label>
+            <input type="text" id="adj-src-school" placeholder="一志愿院校" style="width:150px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">分数段</label>
+            <select id="adj-range" style="width:120px">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">年份</label>
+            <select id="adj-year" style="width:100px">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end">
+            <label class="form-label" style="visibility:hidden">a</label>
+            <label class="radio-label" style="white-space:nowrap">
+              <input type="checkbox" id="adj-cross"> 跨专业
+            </label>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button id="adj-btn" class="btn btn-primary" disabled>搜索</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="adj-dist"></div>
+      <div class="result-header">
+        <span class="result-count" id="adj-count"></span>
+      </div>
+      <div id="adj-results"></div>
+      <div id="adj-pagination"></div>
+    </div>
+
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    /* ══════════ Tab switching ══════════ */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn, .tab-panel').forEach(el => el.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ══════════ Score tab state ══════════ */
+    const sc = { school: '', subject: '', year: '', level: '', form: '', minScore: null, sortBy: 'lowestScore', sortOrder: 'desc', page: 1 };
+
+    const SCORE_COLS = [
+      { key: 'schoolName', label: '学校', fmt: v => YB.esc(v) },
+      { key: 'level', label: '层次', fmt: v => v ? `<span class="cell-tag">${YB.esc(v)}</span>` : '—' },
+      { key: 'subjectName', label: '专业', fmt: (v, r) => `<span>${YB.esc(v || '')}</span><div class="cell-muted">${YB.esc(r.subjectCode || '')}</div>` },
+      { key: 'year', label: '年份', cls: 'cell-num' },
+      { key: 'studyForm', label: '形式', fmt: v => YB.esc(v || '') },
+      { key: 'applicants', label: '报考', cls: 'cell-num', fmt: v => YB.formatNum(v) },
+      { key: 'firstChoiceAdmissions', label: '一志愿', cls: 'cell-num', fmt: v => YB.formatNum(v) },
+      { key: 'adjustedAdmissions', label: '调剂', cls: 'cell-num', fmt: v => YB.formatNum(v) },
+      { key: 'lowestScore', label: '最低分', cls: 'cell-num cell-score', fmt: v => YB.formatScore(v), sortKey: 'lowestScore' },
+      { key: 'averageScore', label: '均分', cls: 'cell-num', fmt: v => YB.formatScore(v), sortKey: 'averageScore' },
+      { key: 'highestScore', label: '最高分', cls: 'cell-num', fmt: v => YB.formatScore(v) },
+    ];
+
+    async function runScoreQuery() {
+      const el = document.getElementById('sc-results');
+      YB.showLoading(el);
+      document.getElementById('sc-pagination').innerHTML = '';
+      document.getElementById('sc-count').textContent = '';
+
+      const args = { pageSize: 20, page: sc.page, sortBy: sc.sortBy, sortOrder: sc.sortOrder };
+      if (sc.school) args.schoolName = sc.school;
+      if (sc.subject) {
+        if (/^\d{6}$/.test(sc.subject.trim())) args.subjectCode = sc.subject.trim();
+        else args.subjectName = sc.subject;
+      }
+      if (sc.year) args.year = Number(sc.year);
+      if (sc.level) args.level = sc.level;
+      if (sc.form) args.studyForm = sc.form;
+      if (sc.minScore) args.minLowestScore = sc.minScore;
+
+      try {
+        const data = await YB.callTool('query_school_scores', args);
+        document.getElementById('sc-count').textContent = `共 ${data.pagination.total.toLocaleString('zh-CN')} 条`;
+        YB.renderTable(el, data.list || [], SCORE_COLS, {
+          sortBy: sc.sortBy, sortOrder: sc.sortOrder,
+          emptyMsg: '未找到符合条件的分数线数据',
+          onSort(key) {
+            sc.sortOrder = (sc.sortBy === key && sc.sortOrder === 'desc') ? 'asc' : 'desc';
+            sc.sortBy = key; sc.page = 1; runScoreQuery();
+          },
+        });
+        YB.renderPagination(document.getElementById('sc-pagination'), data.pagination, p => {
+          sc.page = p; runScoreQuery(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      } catch (err) { YB.showError(el, err.message); }
+    }
+
+    document.getElementById('sc-btn').addEventListener('click', () => {
+      sc.school = document.getElementById('sc-school').value.trim();
+      sc.subject = document.getElementById('sc-subject').value.trim();
+      sc.year = document.getElementById('sc-year').value;
+      sc.level = document.getElementById('sc-level').value;
+      sc.form = document.querySelector('input[name="sc-form"]:checked')?.value || '';
+      const ms = document.getElementById('sc-minscore').value;
+      sc.minScore = ms ? Number(ms) : null;
+      sc.page = 1; runScoreQuery();
+    });
+
+    /* ══════════ Adj tab state ══════════ */
+    const adj = { school: '', subject: '', srcSchool: '', range: '', year: '', cross: false, sortBy: 'initialTestScore', sortOrder: 'desc', page: 1 };
+
+    const ADJ_COLS = [
+      { key: 'targetSchoolName', label: '目标院校', fmt: (v, r) => `<span>${YB.esc(v || '')}</span>${r.targetLevel ? `<div class="cell-muted">${YB.esc(r.targetLevel)}</div>` : ''}` },
+      { key: 'targetSubjectName', label: '调剂专业', fmt: (v, r) => `<span>${YB.esc(v || '')}</span><div class="cell-muted">${YB.esc(r.targetSubjectCode || '')}</div>` },
+      { key: 'sourceSchoolName', label: '来源院校', fmt: v => YB.esc(v || '') },
+      { key: 'initialTestScore', label: '初试分', cls: 'cell-num cell-score', fmt: v => v || '—', sortKey: 'initialTestScore' },
+      { key: 'targetStudyForm', label: '学习形式', fmt: v => YB.esc(v || '') },
+      { key: 'year', label: '年份', cls: 'cell-num', sortKey: 'year' },
+    ];
+
+    /* Convert range label to min/max */
+    function rangeToMinMax(r) {
+      if (!r) return {};
+      if (r === '460+') return { minScore: 460 };
+      if (r === '300以下') return { maxScore: 300 };
+      const m = r.match(/^(\d+)-(\d+)$/);
+      if (m) return { minScore: Number(m[1]), maxScore: Number(m[2]) };
+      return {};
+    }
+
+    async function runAdjQuery() {
+      const el = document.getElementById('adj-results');
+      const dist = document.getElementById('adj-dist');
+      YB.showLoading(el);
+      dist.innerHTML = '';
+      document.getElementById('adj-pagination').innerHTML = '';
+      document.getElementById('adj-count').textContent = '';
+
+      const base = {};
+      if (adj.school) base.targetSchoolName = adj.school;
+      if (adj.subject) base.targetSubjectCode = adj.subject;
+      if (adj.srcSchool) base.sourceSchoolName = adj.srcSchool;
+      if (adj.year) base.year = Number(adj.year);
+      if (adj.cross) base.isCrossMajor = true;
+      Object.assign(base, rangeToMinMax(adj.range));
+
+      const args = { ...base, pageSize: 20, page: adj.page, sortBy: adj.sortBy, sortOrder: adj.sortOrder };
+
+      try {
+        const [data, distData] = await Promise.allSettled([
+          YB.callTool('query_adjustments', args),
+          YB.callTool('aggregate_adjustments', { ...base, groupBy: 'scoreRange' }),
+        ]);
+
+        if (data.status === 'fulfilled') {
+          const d = data.value;
+          document.getElementById('adj-count').textContent = `共 ${d.pagination.total.toLocaleString('zh-CN')} 条`;
+          YB.renderTable(el, d.list || [], ADJ_COLS, {
+            sortBy: adj.sortBy, sortOrder: adj.sortOrder,
+            emptyMsg: '未找到符合条件的调剂记录',
+            onSort(key) {
+              adj.sortOrder = (adj.sortBy === key && adj.sortOrder === 'desc') ? 'asc' : 'desc';
+              adj.sortBy = key; adj.page = 1; runAdjQuery();
+            },
+          });
+          YB.renderPagination(document.getElementById('adj-pagination'), d.pagination, p => {
+            adj.page = p; runAdjQuery(); window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        } else {
+          YB.showError(el, data.reason.message);
+        }
+
+        if (distData.status === 'fulfilled') renderDist(dist, distData.value.list || []);
+
+      } catch (err) { YB.showError(el, err.message); }
+    }
+
+    function renderDist(el, groups) {
+      if (!groups.length) return;
+      const max = Math.max(...groups.map(g => g.count || 0), 1);
+      const rows = groups.map(g => {
+        const pct = Math.max((g.count / max) * 100, 1).toFixed(1);
+        return `<div class="dist-row">
+      <span class="dist-label">${YB.esc(g.label || g.key || '')}</span>
+      <div class="dist-bar-wrap">
+        <div class="dist-bar" style="width:${pct}%"></div>
+        <span class="dist-count">${(g.count || 0).toLocaleString('zh-CN')}</span>
+      </div>
+    </div>`;
+      }).join('');
+      el.innerHTML = `<div class="dist-chart"><div class="dist-chart-title">分数段分布</div>${rows}</div>`;
+    }
+
+    document.getElementById('adj-btn').addEventListener('click', () => {
+      adj.school = document.getElementById('adj-school').value.trim();
+      adj.subject = document.getElementById('adj-subject').value.trim();
+      adj.srcSchool = document.getElementById('adj-src-school').value.trim();
+      adj.range = document.getElementById('adj-range').value;
+      adj.year = document.getElementById('adj-year').value;
+      adj.cross = document.getElementById('adj-cross').checked;
+      adj.page = 1; runAdjQuery();
+    });
+
+    /* ══════════ Load filter options & init ══════════ */
+    async function loadOptions() {
+      try {
+        const [years, levels, ranges] = await Promise.all([
+          YB.callTool('list_score_years', {}),
+          YB.callTool('list_score_levels', {}),
+          YB.callTool('list_adjustment_score_ranges', {}),
+        ]);
+
+        const scYear = document.getElementById('sc-year');
+        (years.years || []).forEach(y => { const o = new Option(y, y); scYear.appendChild(o); });
+        if (years.years?.length) { scYear.value = years.years[0]; sc.year = String(years.years[0]); }
+
+        const scLevel = document.getElementById('sc-level');
+        (levels.levels || []).forEach(l => scLevel.appendChild(new Option(l, l)));
+
+        const adjYear = document.getElementById('adj-year');
+        (years.years || []).forEach(y => adjYear.appendChild(new Option(y, y)));
+
+        const adjRange = document.getElementById('adj-range');
+        (ranges.scoreRanges || []).forEach(r => adjRange.appendChild(new Option(r, r)));
+
+        document.getElementById('sc-btn').disabled = false;
+        document.getElementById('adj-btn').disabled = false;
+
+        runScoreQuery();
+      } catch (err) {
+        document.getElementById('sc-btn').disabled = false;
+        document.getElementById('adj-btn').disabled = false;
+      }
+    }
+
+    YB.pollStatus(document.getElementById('badge'), loadOptions);
+  </script>
+</body>
+
+</html>

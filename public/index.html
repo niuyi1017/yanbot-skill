@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>研bot · 考研数据平台</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.home-grid { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+@media (max-width: 768px) { .home-grid { grid-template-columns: 1fr; } }
+.hero { padding: 2rem 0 1.75rem; }
+.hero-title { font-size: 2.625rem; font-weight: 700; letter-spacing: -.04em; color: #1d1d1f; line-height: 1.12; }
+.hero-title em { color: #0071e3; font-style: normal; }
+.hero-sub { margin-top: 0.5rem; font-size: 1.0625rem; color: #6e6e73; font-weight: 400; }
+</style>
+</head>
+<body>
+<header class="page-header">
+  <a href="/" class="header-brand">研<em>bot</em></a>
+  <nav class="header-nav">
+    <a href="/"          class="nav-link active">首页</a>
+    <a href="feeds.html" class="nav-link">资讯动态</a>
+    <a href="data.html"  class="nav-link">数据查询</a>
+  </nav>
+  <div class="header-right">
+    <span id="badge" class="badge connecting">连接中…</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-title">研<em>bot</em></div>
+    <div class="hero-sub">考研数据平台 · 资讯、分数线、调剂记录一站查询</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" style="margin-bottom:2rem">
+    <div class="stat-item">
+      <div class="stat-value" id="stat-feeds">—</div>
+      <div class="stat-label">资讯动态</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="stat-scores">—</div>
+      <div class="stat-label">录取分数线</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="stat-adj">—</div>
+      <div class="stat-label">调剂记录</div>
+    </div>
+  </div>
+
+  <div class="home-grid">
+
+    <!-- Left: nav cards -->
+    <div>
+      <div class="section-title" style="margin-bottom:.875rem">功能入口</div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <a href="feeds.html" class="nav-card">
+          <div class="nav-card-icon">📰</div>
+          <div class="nav-card-title">资讯动态</div>
+          <div class="nav-card-desc">浏览各大高校最新招生公告、复试通知、调剂信息，支持按院校、标签、时间筛选</div>
+          <div class="nav-card-arrow">去查询 →</div>
+        </a>
+        <a href="data.html" class="nav-card">
+          <div class="nav-card-icon">📊</div>
+          <div class="nav-card-title">数据查询</div>
+          <div class="nav-card-desc">查询历年录取分数线（最低分/均分/招生人数）及调剂录取记录，支持分数分布统计</div>
+          <div class="nav-card-arrow">去查询 →</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Right: latest feeds -->
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
+        <div class="section-title">最新资讯</div>
+        <a href="feeds.html" style="font-size:.875rem;color:var(--c-accent);text-decoration:none;font-weight:500">查看全部 →</a>
+      </div>
+      <div id="latest-feeds">
+        <div class="state-loading"><div class="spinner"></div>加载中…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+YB.pollStatus(document.getElementById('badge'), loadData);
+
+async function loadData() {
+  const [r1, r2, r3, r4] = await Promise.allSettled([
+    YB.callTool('query_feeds',         { pageSize: 1 }),
+    YB.callTool('query_school_scores', { pageSize: 1 }),
+    YB.callTool('query_adjustments',   { pageSize: 1 }),
+    YB.callTool('query_feeds', {
+      pageSize: 8, sortBy: 'isoDate', sortOrder: 'desc',
+      fields: ['_id','title','link','isoDate','tags','feedMeta'],
+    }),
+  ]);
+
+  if (r1.status === 'fulfilled') setStatEl('stat-feeds',  r1.value.pagination.total);
+  if (r2.status === 'fulfilled') setStatEl('stat-scores', r2.value.pagination.total);
+  if (r3.status === 'fulfilled') setStatEl('stat-adj',    r3.value.pagination.total);
+
+  const el = document.getElementById('latest-feeds');
+  if (r4.status === 'fulfilled') {
+    const items = r4.value.list || [];
+    if (!items.length) { YB.showEmpty(el, '暂无资讯'); return; }
+    el.innerHTML = '<div class="feed-list">' + items.map(feedCard).join('') + '</div>';
+  } else {
+    YB.showError(el, r4.reason.message);
+  }
+}
+
+function setStatEl(id, n) {
+  document.getElementById(id).textContent = Number(n).toLocaleString('zh-CN');
+}
+
+function feedCard(item) {
+  const tags = (item.tags || []).map(t => YB.renderTagChip(t)).join('');
+  const src  = YB.esc(item.feedMeta?.title || '');
+  const date = YB.formatDate(item.isoDate);
+  return `
+    <div class="feed-item">
+      <a href="${YB.esc(item.link||'#')}" target="_blank" rel="noopener" class="feed-title">${YB.esc(item.title||'无标题')}</a>
+      <div class="feed-meta">
+        ${src  ? `<span class="feed-source">${src}</span>` : ''}
+        ${date ? `<span>${date}</span>` : ''}
+        <a href="${YB.esc(item.link||'#')}" target="_blank" rel="noopener" class="feed-link">查看原文 ↗</a>
+      </div>
+      ${tags ? `<div class="feed-tags">${tags}</div>` : ''}
+    </div>`;
+}
+</script>
+</body>
+</html>
